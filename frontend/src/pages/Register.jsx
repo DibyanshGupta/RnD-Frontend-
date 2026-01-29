@@ -52,9 +52,8 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-3xl border bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-semibold">Register</h2>
-        <p className="mt-1 text-sm text-gray-600">Create a new account (mock).</p>
+      <div className="w-full max-w-xl rounded-3xl border bg-white p-6 shadow-sm">
+        {/* <h2 className="text-2xl font-semibold">Register</h2> */}
 
         <form className="mt-6 space-y-4" onSubmit={handleRegister}>
           <div>
@@ -92,40 +91,37 @@ export default function Register() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">institution</label>
+            <label className="text-sm font-medium text-gray-700">Institution</label>
             <input
               className="mt-1 w-full rounded-xl border px-3 py-2"
               value={institution}
               onChange={(e) => setInstitution(e.target.value)}
-              placeholder="••••••••"
               required
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">department</label>
+            <label className="text-sm font-medium text-gray-700">Department</label>
             <input
               className="mt-1 w-full rounded-xl border px-3 py-2"
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-              placeholder="••••••••"
               required
             />
           </div><div>
-            <label className="text-sm font-medium text-gray-700">academic_position</label>
+            <label className="text-sm font-medium text-gray-700">Academic Position</label>
             <input
               className="mt-1 w-full rounded-xl border px-3 py-2"
               value={academic_position}
               onChange={(e) => setAcademic_position(e.target.value)}
-              placeholder="••••••••"
               required
             />
           </div><div>
-            <label className="text-sm font-medium text-gray-700">research_interests</label>
+            <label className="text-sm font-medium text-gray-700">Research Interests</label>
             <input
               className="mt-1 w-full rounded-xl border px-3 py-2"
               value={research_interests}
-              onChange={(e) => research_interests([e.target.value])}
-              placeholder="••••••••"
+              onChange={(e) => setResearch_interests(e.target.value)}
+              placeholder="put comma separated values like 'Algorithms, Database, Statistics'"
               required
             />
           </div>

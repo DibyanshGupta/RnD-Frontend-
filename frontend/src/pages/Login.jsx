@@ -6,17 +6,22 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRoleState] = useState("author");
 
   function handleLogin(e) {
     e.preventDefault();
-    // mock login
+
+    // TEMP / MOCK:
+    // role will be decided by backend or stored user data later
+    const role = "author"; // default role for now
+
     setRole(role);
+
     const map = {
       author: "/author/dashboard",
       reviewer: "/reviewer/dashboard",
       admin: "/admin/dashboard",
     };
+
     navigate(map[role]);
   }
 
@@ -24,7 +29,9 @@ export default function Login() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="w-full max-w-md rounded-3xl border bg-white p-6 shadow-sm">
         <h2 className="text-2xl font-semibold">Login</h2>
-        <p className="mt-1 text-sm text-gray-600">Select role to preview dashboards.</p>
+        <p className="mt-1 text-sm text-gray-600">
+          Enter your credentials to continue.
+        </p>
 
         <form className="mt-6 space-y-4" onSubmit={handleLogin}>
           <div>
@@ -49,19 +56,6 @@ export default function Login() {
               type="password"
               required
             />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">Role</label>
-            <select
-              className="mt-1 w-full rounded-xl border px-3 py-2"
-              value={role}
-              onChange={(e) => setRoleState(e.target.value)}
-            >
-              <option value="author">Author</option>
-              <option value="reviewer">Reviewer</option>
-              <option value="admin">Admin</option>
-            </select>
           </div>
 
           <button className="w-full rounded-xl bg-gray-900 px-4 py-2 text-white font-medium">

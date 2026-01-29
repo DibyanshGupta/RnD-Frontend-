@@ -1,13 +1,31 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { clearRole, getRole } from "../data/mockDb";
+import { getRole, setRole, clearRole } from "../data/mockDb";
 
 export default function Navbar({ title, onMenuClick }) {
   const navigate = useNavigate();
   const role = getRole();
+  const [open, setOpen] = useState(false);
+
+  const roleMap = {
+    author: "/author/dashboard",
+    reviewer: "/reviewer/dashboard",
+    admin: "/admin/dashboard",
+  };
+
+  function switchRole(newRole) {
+    if (newRole === role) {
+      setOpen(false);
+      return;
+    }
+    setRole(newRole);          // update role in localStorage
+    setOpen(false);            // close dropdown
+    navigate(roleMap[newRole]); // redirect to dashboard
+  }
 
   return (
     <div className="sticky top-0 z-20 flex items-center justify-between border-b bg-white px-4 py-3">
+      {/* Left section */}
       <div className="flex items-center gap-3">
         <button
           className="md:hidden rounded-lg border px-3 py-2 text-sm"
@@ -21,12 +39,36 @@ export default function Navbar({ title, onMenuClick }) {
         </div>
       </div>
 
+      {/* Right section */}
       <div className="flex items-center gap-3">
+        {/* Role Switcher */}
         {role && (
-          <span className="hidden sm:inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
-            Role: {role}
-          </span>
+          <div className="relative">
+            <button
+              onClick={() => setOpen(!open)}
+              className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm text-white hover:cursor-pointer"
+            >
+              {role.charAt(0).toUpperCase() + role.slice(1)}
+              <span className="text-xs">▼</span>
+            </button>
+
+            {open && (
+              <div className="absolute right-0 mt-2 w-40 py-1 rounded-md border bg-white shadow-lg">
+                {["author", "reviewer", "admin"].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => switchRole(r)}
+                    className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 hover:cursor-pointer"
+                  >
+                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
+
+        {/* Logout / Login */}
         {role ? (
           <button
             className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white"
