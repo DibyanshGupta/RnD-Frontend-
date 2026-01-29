@@ -91,19 +91,45 @@ export default function Register() {
               required
             />
           </div>
-
           <div>
-            <label className="text-sm font-medium text-gray-700">Role</label>
-            {/* <select
+            <label className="text-sm font-medium text-gray-700">institution</label>
+            <input
               className="mt-1 w-full rounded-xl border px-3 py-2"
-              // value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="author">Author</option>
-              <option value="reviewer">Reviewer</option>
-              <option value="admin">Admin</option>
-            </select> */}
+              value={institution}
+              onChange={(e) => setInstitution(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
           </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">department</label>
+            <input
+              className="mt-1 w-full rounded-xl border px-3 py-2"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+          </div><div>
+            <label className="text-sm font-medium text-gray-700">academic_position</label>
+            <input
+              className="mt-1 w-full rounded-xl border px-3 py-2"
+              value={academic_position}
+              onChange={(e) => setAcademic_position(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+          </div><div>
+            <label className="text-sm font-medium text-gray-700">research_interests</label>
+            <input
+              className="mt-1 w-full rounded-xl border px-3 py-2"
+              value={research_interests}
+              onChange={(e) => research_interests([e.target.value])}
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          
 
           <button className="w-full rounded-xl bg-gray-900 px-4 py-2 text-white font-medium">
             Register
