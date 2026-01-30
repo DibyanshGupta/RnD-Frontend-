@@ -65,6 +65,23 @@ export const mockDb = {
   ],
 };
 
+export function getProfile() {
+  return {
+    name: "Diby ansh Gupta",
+    email: "dibyansh@example.com",
+    institution: "IEM Kolkata",
+    department: "Computer Science",
+    academic_position: "Student",
+    research_interests: "AI, AR/VR, Systems",
+    role: localStorage.getItem("role"),
+  };
+}
+
+export function setProfile(updatedProfile) {
+  console.log("Profile updated:", updatedProfile);
+  return true;
+}
+
 export function getRole() {
   return localStorage.getItem("role");
 }
