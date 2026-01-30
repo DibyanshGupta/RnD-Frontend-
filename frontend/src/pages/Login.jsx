@@ -1,28 +1,40 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { setRole } from "../data/mockDb";
+import api from "./api";
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault();
-
-    // TEMP / MOCK:
-    // role will be decided by backend or stored user data later
-    const role = "author"; // default role for now
-
+    const role = "author";
     setRole(role);
-
     const map = {
       author: "/author/dashboard",
       reviewer: "/reviewer/dashboard",
       admin: "/admin/dashboard",
     };
+      try {
+        const payload = {
+          email,
+          password
+        };
 
-    navigate(map[role]);
+        const res = await api.post("/api/auth/login/", payload);
+
+        console.log("Login successful:", res.data);
+
+        // store JWT
+        localStorage.setItem("access", res.data.access);
+        localStorage.setItem("refresh", res.data.refresh);  
+        navigate("/author/dashboard");
+
+      } catch (err) {
+        console.error("Login error:", err.response?.data || err);
+      }
   }
 
   return (

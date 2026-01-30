@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import api from "./api";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -9,45 +10,42 @@ export default function Register() {
   const [institution, setInstitution] = useState("");
   const [department, setDepartment] = useState("");
   const [academic_position, setAcademic_position] = useState("");
-  const [research_interests, setResearch_interests] = useState([]);
+  const [research_interests, setResearch_interests] = useState("");
   
 
-  function handleRegister(e) {
+  async function handleRegister(e) {
   e.preventDefault();
 
-  const payload = {
-    email: email,
-    password: password,
-    name: name,
-    institution: institution,
-    department: department,
-    academic_position: academic_position,
-    research_interests: research_interests
-  };
+  try {
+    const payload = {
+      email,
+      password,
+      name,
+      institution,
+      department,
+      academic_position,
 
-  fetch("http://127.0.0.1:8000/api/auth/register/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  })
-    .then(async (res) => {
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw errorData;
-      }
-      return res.json();
-    })
-    .then((data) => {
-      console.log("Registration successful:", data);
-      navigate("/login");
-    })
-    .catch((err) => {
-      console.error("Registration error:", err);
-      // optionally show error message in UI
-    });
+      // ⭐ convert string → array BEFORE sending
+      research_interests: research_interests
+        .split(",")
+        .map(i => i.trim())
+        .filter(Boolean),
+    };
+
+    const res = await api.post("/api/auth/register/", payload);
+
+    console.log("Registration successful:", res.data);
+
+    // store JWT
+    localStorage.setItem("access", res.data.access);
+    localStorage.setItem("refresh", res.data.refresh);
+    navigate("/author/dashboard");
+
+  } catch (err) {
+    console.error("Registration error:", err.response?.data || err);
+  }
 }
+
 
 
   return (

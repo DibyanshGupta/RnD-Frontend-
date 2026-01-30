@@ -1,7 +1,34 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Landing() {
+
+  const navigate = useNavigate();
+  useEffect(() => {
+  const token = localStorage.getItem("access");
+  if (!token) return;
+
+  fetch("http://127.0.0.1:8000/api/auth/verify_token/", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Invalid token");
+      return;
+    })
+    .then(data => {
+      // console.log("User already logged in");
+      
+      navigate("/author/dashboard");
+    })
+    .catch(() => {
+      localStorage.removeItem("access");
+    });
+
+}, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-6xl px-6 py-12">
