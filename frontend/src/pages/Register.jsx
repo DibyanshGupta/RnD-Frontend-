@@ -2,6 +2,41 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "./api";
 
+/* ===== Institute List ===== */
+const INSTITUTES = [
+  "IIT Bombay",
+  "IIT Delhi",
+  "IIT Kanpur",
+  "IIT Kharagpur",
+  "IIT Madras",
+  "IISc Bangalore",
+  "NIT Trichy",
+  "NIT Surathkal",
+  "NIT Warangal",
+  "IIIT Hyderabad",
+  "Jadavpur University",
+  "University of Calcutta",
+  "IEM Kolkata",
+  "BITS Pilani",
+  "Other",
+];
+
+/* ===== Research Interests ===== */
+const INTERESTS = [
+  "Artificial Intelligence",
+  "Machine Learning",
+  "Computer Vision",
+  "Natural Language Processing",
+  "Databases",
+  "Distributed Systems",
+  "Computer Networks",
+  "Cyber Security",
+  "AR/VR",
+  "Human Computer Interaction",
+  "Software Engineering",
+  "Data Mining",
+];
+
 export default function Register() {
   const navigate = useNavigate();
 
@@ -12,14 +47,18 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [institution, setInstitution] = useState("");
+  const [otherInstitution, setOtherInstitution] = useState("");
+
   const [department, setDepartment] = useState("");
   const [academic_position, setAcademic_position] = useState("");
-  const [research_interests, setResearch_interests] = useState("");
+
+  const [selectedInterests, setSelectedInterests] = useState([]);
+  const [interestInput, setInterestInput] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  /* ================= Password Rules ================= */
+  /* ===== Password Rules ===== */
   const passwordRules = {
     length: password.length >= 10,
     upper: /[A-Z]/.test(password),
@@ -35,9 +74,23 @@ export default function Register() {
       ? true
       : password === confirmPassword;
 
-  const canSubmit = isPasswordStrong && passwordsMatch;
+  const canSubmit =
+    isPasswordStrong &&
+    passwordsMatch &&
+    selectedInterests.length > 0 &&
+    (institution !== "Other" || otherInstitution.trim().length > 0);
 
-  /* ================= Submit ================= */
+  /* ===== Research Interest Helpers ===== */
+  function addInterest(value) {
+    if (!value || selectedInterests.includes(value)) return;
+    setSelectedInterests([...selectedInterests, value]);
+  }
+
+  function removeInterest(value) {
+    setSelectedInterests(selectedInterests.filter((i) => i !== value));
+  }
+
+  /* ===== Submit ===== */
   async function handleRegister(e) {
     e.preventDefault();
     if (!canSubmit) return;
@@ -47,13 +100,11 @@ export default function Register() {
         name,
         email,
         password,
-        institution,
+        institution:
+          institution === "Other" ? otherInstitution : institution,
         department,
         academic_position,
-        research_interests: research_interests
-          .split(",")
-          .map((i) => i.trim())
-          .filter(Boolean),
+        research_interests: selectedInterests,
       };
 
       const res = await api.post("/api/auth/register/", payload);
@@ -111,30 +162,20 @@ export default function Register() {
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-3 text-sm text-gray-500"
+                className="absolute inset-y-0 right-3 text-sm"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? "🙈" : "👁️"}
+                {showPassword ? "🙈" : "👀"}
               </button>
             </div>
 
             {password.length > 0 && (
               <ul className="mt-2 space-y-1 text-xs">
-                <li className={passwordRules.length ? "text-green-600" : "text-red-600"}>
-                  • At least 10 characters
-                </li>
-                <li className={passwordRules.upper ? "text-green-600" : "text-red-600"}>
-                  • One uppercase letter
-                </li>
-                <li className={passwordRules.lower ? "text-green-600" : "text-red-600"}>
-                  • One lowercase letter
-                </li>
-                <li className={passwordRules.number ? "text-green-600" : "text-red-600"}>
-                  • One number
-                </li>
-                <li className={passwordRules.special ? "text-green-600" : "text-red-600"}>
-                  • One special character
-                </li>
+                {Object.entries(passwordRules).map(([k, v]) => (
+                  <li key={k} className={v ? "text-green-600" : "text-red-600"}>
+                    • {k}
+                  </li>
+                ))}
               </ul>
             )}
           </div>
@@ -156,12 +197,12 @@ export default function Register() {
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-3 text-sm text-gray-500"
+                className="absolute inset-y-0 right-3 text-sm"
                 onClick={() =>
                   setShowConfirmPassword(!showConfirmPassword)
                 }
               >
-                {showConfirmPassword ? "🙈" : "👁️"}
+                {showConfirmPassword ? "🙈" : "👀"}
               </button>
             </div>
 
@@ -175,12 +216,29 @@ export default function Register() {
           {/* Institution */}
           <div>
             <label className="text-sm font-medium text-gray-700">Institution</label>
-            <input
-              className="mt-1 w-full rounded-xl border px-3 py-2"
+            <select
+              className="mt-1 w-full rounded-xl border px-3 py-2 bg-white"
               value={institution}
               onChange={(e) => setInstitution(e.target.value)}
               required
-            />
+            >
+              <option value="">Select your institute</option>
+              {INSTITUTES.map((inst) => (
+                <option key={inst} value={inst}>
+                  {inst}
+                </option>
+              ))}
+            </select>
+
+            {institution === "Other" && (
+              <input
+                className="mt-2 w-full rounded-xl border px-3 py-2"
+                placeholder="Enter your institute name"
+                value={otherInstitution}
+                onChange={(e) => setOtherInstitution(e.target.value)}
+                required
+              />
+            )}
           </div>
 
           {/* Department */}
@@ -212,13 +270,52 @@ export default function Register() {
             <label className="text-sm font-medium text-gray-700">
               Research Interests
             </label>
+
+            <select
+              className="mt-1 w-full rounded-xl border px-3 py-2 bg-white"
+              onChange={(e) => {
+                addInterest(e.target.value);
+                e.target.value = "";
+              }}
+            >
+              <option value="">Select an interest</option>
+              {INTERESTS.map((i) => (
+                <option key={i} value={i}>
+                  {i}
+                </option>
+              ))}
+            </select>
+
             <input
-              className="mt-1 w-full rounded-xl border px-3 py-2"
-              value={research_interests}
-              onChange={(e) => setResearch_interests(e.target.value)}
-              placeholder="AI, Databases, AR/VR"
-              required
+              className="mt-2 w-full rounded-xl border px-3 py-2"
+              placeholder="Add custom interest and press Enter"
+              value={interestInput}
+              onChange={(e) => setInterestInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addInterest(interestInput.trim());
+                  setInterestInput("");
+                }
+              }}
             />
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {selectedInterests.map((i) => (
+                <span
+                  key={i}
+                  className="flex items-center gap-2 rounded-full bg-gray-200 px-3 py-1 text-sm"
+                >
+                  {i}
+                  <button
+                    type="button"
+                    onClick={() => removeInterest(i)}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Submit */}
