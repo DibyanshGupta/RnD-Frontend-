@@ -25,8 +25,8 @@ export default function Navbar({ title, onMenuClick }) {
       const res = await api.post("/api/auth/logout/", payload);
       console.log("Log-Out successful:", res.data);
       localStorage.removeItem("access", res.data.access);
-      localStorage.removeItem("refresh", res.data.refresh);
-      navigate("/login");
+      // localStorage.removeItem("refresh", res.data.refresh);
+      navigate("/landing");
 
     } catch (err) {
       console.error("Logout error:", err.response?.data || err);

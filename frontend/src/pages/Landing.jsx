@@ -1,13 +1,15 @@
 import React, { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
+
 export default function Landing() {
   const navigate = useNavigate();
-
-  /* ================= Auth Check (UNCHANGED) ================= */
   useEffect(() => {
     const token = localStorage.getItem("access");
-    if (!token) return;
+    const refresh=localStorage.getItem("refresh");
+
+    if (!token) 
+        return;
 
     fetch("http://127.0.0.1:8000/api/auth/verify_token/", {
       headers: {
@@ -19,15 +21,22 @@ export default function Landing() {
         navigate("/author/dashboard");
       })
       .catch(() => {
-        localStorage.removeItem("access");
+        fetch("http://127.0.0.1:8000/api/auth/token/refresh/",{
+          refresh:refresh
+        }).then((res)=>{
+          localStorage.setItem("access",res.access);
+        }).catch(()=>{
+          localStorage.removeItem("access");
+          localStorage.removeItem("refresh");
+
+          //session expired
+        })
       });
   }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-6 py-12">
-
-        {/* ================= HERO ================= */}
         <section className="rounded-3xl border bg-white p-10 shadow-sm">
           <div className="text-sm uppercase tracking-wide text-gray-500">
             International Conference

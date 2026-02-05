@@ -110,7 +110,7 @@ export default function Register() {
       const res = await api.post("/api/auth/register/", payload);
 
       localStorage.setItem("access", res.data.access);
-      localStorage.setItem("refresh", res.data.refresh);
+      // localStorage.setItem("refresh", res.data.refresh);
 
       navigate("/author/dashboard");
     } catch (err) {

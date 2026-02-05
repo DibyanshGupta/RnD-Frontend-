@@ -10,27 +10,29 @@ export default function SubmitPaper() {
   const [pdf, setPdf] = useState(null);
   const [msg, setMsg] = useState("");
 
-  /* ===== Dynamic Authors ===== */
+  // ✅ Simple Authors State
   const [authors, setAuthors] = useState([
-    { name: "", email: "" }, // primary author
+    { name: "", email: "" },
   ]);
 
-  /* ===== Author Helpers ===== */
+  // Update author field
   function handleAuthorChange(index, field, value) {
     const updated = [...authors];
     updated[index][field] = value;
     setAuthors(updated);
   }
 
+  // Add co-author
   function addAuthor() {
     setAuthors([...authors, { name: "", email: "" }]);
   }
 
+  // Remove co-author
   function removeAuthor(index) {
     setAuthors(authors.filter((_, i) => i !== index));
   }
 
-  /* ===== Submit ===== */
+  // Submit handler
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -48,11 +50,15 @@ export default function SubmitPaper() {
         }
       }
 
-      /* === Step 1: Get upload auth === */
+      /* ============================
+         Step 1: Get ImageKit Upload Auth
+      ============================ */
       const authRes = await api.get("/api/files/upload_auth/");
       const { token, signature, expire, publicKey } = authRes.data;
 
-      /* === Step 2: Upload PDF === */
+      /* ============================
+         Step 2: Upload PDF to ImageKit
+      ============================ */
       const formData = new FormData();
       formData.append("file", pdf);
       formData.append("fileName", pdf.name);
@@ -69,25 +75,41 @@ export default function SubmitPaper() {
 
       const pdf_url = uploadRes.data.url;
 
-      /* === Step 3: Create paper === */
+      /* ============================
+         Step 3: Submit Paper Data
+      ============================ */
+      // ✅ Convert keywords string → array
+      const keywordsArray = keywords
+        .split(",")
+        .map((k) => k.trim())
+        .filter((k) => k.length > 0);
+
+      // ✅ Make first author corresponding automatically
+      const formattedAuthors = authors.map((a, index) => ({
+        ...a,
+        is_corresponding: index === 0,
+      }));
+
       await api.post("/api/papers/create/", {
         title,
         abstract,
-        keywords,
+        keywords: keywordsArray,      // ✅ correct format
         subject_area,
         pdf_url,
-        authors,
+        authors: formattedAuthors,    // ✅ correct structure
       });
 
-      setMsg("Paper submitted successfully!");
 
-      // reset form
+      setMsg("✅ Paper submitted successfully!");
+
+      // Reset form
       setTitle("");
       setAbstract("");
       setKeywords("");
       setSubjectArea("");
       setPdf(null);
       setAuthors([{ name: "", email: "" }]);
+
     } catch (err) {
       console.error("Submission error:", err.response?.data || err);
       alert("Upload failed. Check console.");
@@ -105,6 +127,7 @@ export default function SubmitPaper() {
       )}
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+
         {/* Title */}
         <div>
           <label className="text-sm font-medium text-gray-700">Title</label>
@@ -118,7 +141,9 @@ export default function SubmitPaper() {
 
         {/* Abstract */}
         <div>
-          <label className="text-sm font-medium text-gray-700">Abstract</label>
+          <label className="text-sm font-medium text-gray-700">
+            Abstract
+          </label>
           <textarea
             className="mt-1 w-full rounded-xl border px-3 py-2"
             rows={4}
@@ -185,7 +210,9 @@ export default function SubmitPaper() {
 
         {/* Keywords */}
         <div>
-          <label className="text-sm font-medium text-gray-700">Keywords</label>
+          <label className="text-sm font-medium text-gray-700">
+            Keywords
+          </label>
           <input
             className="mt-1 w-full rounded-xl border px-3 py-2"
             value={keywords}
