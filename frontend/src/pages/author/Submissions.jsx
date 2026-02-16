@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import DataTable from "../../components/DataTable";
 import StatusBadge from "../../components/StatusBadge";
 import { Link } from "react-router-dom";
-import axios from "axios";
+import api from "../api"; // ✅ Correct for Case B
+
 
 export default function AuthorSubmissions() {
   const [papers, setPapers] = useState([]);
@@ -13,15 +14,10 @@ export default function AuthorSubmissions() {
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
-        const res = await axios.get("http://127.0.0.1:8000/api/papers/", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access")}`,
-          },
-        });
-
-        setPapers(res.data.papers);
+        const res = await api.get("/api/papers/");
+        setPapers(res.data.papers || []);
       } catch (err) {
-        console.error("Error fetching submissions:", err);
+        console.error("Error fetching submissions:", err.response?.data || err);
       }
     };
 
@@ -31,10 +27,10 @@ export default function AuthorSubmissions() {
   // ✅ Filter papers by search + status
   const filtered = useMemo(() => {
     return papers.filter((p) => {
-      // Search match (title or paperID)
+      // Search match (title or ID)
       const matchesQ =
         p.title.toLowerCase().includes(q.toLowerCase()) ||
-        String(p.paperID).includes(q);
+        String(p.id).includes(q); // ✅ FIXED: id instead of paperID
 
       // Status match
       const matchesStatus =
@@ -48,7 +44,7 @@ export default function AuthorSubmissions() {
 
   // ✅ Table columns
   const columns = [
-    { key: "paperID", header: "Paper ID" },
+    { key: "id", header: "Paper ID" }, // ✅ FIXED
     { key: "title", header: "Title" },
     {
       key: "status",
@@ -61,7 +57,7 @@ export default function AuthorSubmissions() {
       render: (r) => (
         <Link
           className="text-gray-900 font-medium"
-          to={`/author/submissions/${r.paperID}`}
+          to={`/author/submissions/${r.id}`} // ✅ FIXED
         >
           View
         </Link>
@@ -90,17 +86,17 @@ export default function AuthorSubmissions() {
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
-            <option>All</option>
-            <option>submitted</option>
-            <option>under_review</option>
-            <option>accepted</option>
-            <option>rejected</option>
+            <option value="All">All</option>
+            <option value="submitted">Submitted</option>
+            <option value="under_review">Under Review</option>
+            <option value="accepted">Accepted</option>
+            <option value="rejected">Rejected</option>
           </select>
         </div>
       </div>
 
       {/* Table */}
-      <DataTable columns={columns} rows={filtered} rowKey="paperID" />
+      <DataTable columns={columns} rows={filtered} rowKey="id" /> {/* ✅ FIXED */}
     </div>
   );
 }

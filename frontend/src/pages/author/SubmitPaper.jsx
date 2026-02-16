@@ -10,9 +10,9 @@ export default function SubmitPaper() {
   const [pdf, setPdf] = useState(null);
   const [msg, setMsg] = useState("");
 
-  // ✅ Simple Authors State
+  // ✅ Authors State (name + institute only)
   const [authors, setAuthors] = useState([
-    { name: "", email: "" },
+    { name: "", institute: "" },
   ]);
 
   // Update author field
@@ -24,7 +24,7 @@ export default function SubmitPaper() {
 
   // Add co-author
   function addAuthor() {
-    setAuthors([...authors, { name: "", email: "" }]);
+    setAuthors([...authors, { name: "", institute: "" }]);
   }
 
   // Remove co-author
@@ -42,10 +42,10 @@ export default function SubmitPaper() {
         return;
       }
 
-      // Validate authors
+      // ✅ Validate authors
       for (const a of authors) {
-        if (!a.name || !a.email) {
-          alert("Please fill name and email for all authors.");
+        if (!a.name || !a.institute) {
+          alert("Please fill name and institute for all authors.");
           return;
         }
       }
@@ -78,27 +78,22 @@ export default function SubmitPaper() {
       /* ============================
          Step 3: Submit Paper Data
       ============================ */
+
       // ✅ Convert keywords string → array
       const keywordsArray = keywords
         .split(",")
         .map((k) => k.trim())
         .filter((k) => k.length > 0);
 
-      // ✅ Make first author corresponding automatically
-      const formattedAuthors = authors.map((a, index) => ({
-        ...a,
-        is_corresponding: index === 0,
-      }));
-
+      // ✅ Submit to Django (authors only name + institute)
       await api.post("/api/papers/create/", {
         title,
         abstract,
-        keywords: keywordsArray,      // ✅ correct format
+        keywords: keywordsArray,
         subject_area,
         pdf_url,
-        authors: formattedAuthors,    // ✅ correct structure
+        authors, // ✅ Perfect match with backend serializer
       });
-
 
       setMsg("✅ Paper submitted successfully!");
 
@@ -108,7 +103,7 @@ export default function SubmitPaper() {
       setKeywords("");
       setSubjectArea("");
       setPdf(null);
-      setAuthors([{ name: "", email: "" }]);
+      setAuthors([{ name: "", institute: "" }]);
 
     } catch (err) {
       console.error("Submission error:", err.response?.data || err);
@@ -165,6 +160,7 @@ export default function SubmitPaper() {
                 key={index}
                 className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center"
               >
+                {/* Author Name */}
                 <input
                   className="md:col-span-2 rounded-xl border px-3 py-2"
                   placeholder="Author Name"
@@ -175,17 +171,18 @@ export default function SubmitPaper() {
                   required
                 />
 
+                {/* Author Institute */}
                 <input
                   className="md:col-span-2 rounded-xl border px-3 py-2"
-                  placeholder="Author Email"
-                  type="email"
-                  value={author.email}
+                  placeholder="Author Institute"
+                  value={author.institute}
                   onChange={(e) =>
-                    handleAuthorChange(index, "email", e.target.value)
+                    handleAuthorChange(index, "institute", e.target.value)
                   }
                   required
                 />
 
+                {/* Remove Button */}
                 {index > 0 && (
                   <button
                     type="button"

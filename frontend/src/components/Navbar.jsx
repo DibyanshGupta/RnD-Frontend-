@@ -6,7 +6,7 @@ import api from "../pages/api"
 export default function Navbar({ title, onMenuClick }) {
   const navigate = useNavigate();
   const role = getRole();
-  const access=localStorage.getItem("access")
+  const access = localStorage.getItem("access")
   const [open, setOpen] = useState(false);
 
   const roleMap = {
@@ -14,25 +14,50 @@ export default function Navbar({ title, onMenuClick }) {
     reviewer: "/reviewer/dashboard",
     admin: "/admin/dashboard",
   };
+
+
   async function handleLogout() {
     try {
-      const refresh=localStorage.getItem("refresh");
-      const access=localStorage.getItem("access");
-      const payload = {
-        refresh:refresh
-      };
-      console.log(payload)
-      const res = await api.post("/api/auth/logout/", payload);
-      console.log("Log-Out successful:", res.data);
-      localStorage.removeItem("access", res.data.access);
-      // localStorage.removeItem("refresh", res.data.refresh);
-      navigate("/landing");
+      const refresh = localStorage.getItem("refresh");
+      const access = localStorage.getItem("access");
+
+      if (!refresh) {
+        console.log("No refresh token found");
+        return;
+      }
+
+      const payload = { refresh };
+
+      const res = await api.post(
+        "/api/auth/logout/",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${access}`,
+          },
+        }
+      );
+
+      console.log("Logout successful:", res.data);
+
+      // ✅ Clear tokens
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+
+      navigate("/");
 
     } catch (err) {
       console.error("Logout error:", err.response?.data || err);
-    }
 
+      // Even if backend fails, clear tokens anyway
+      localStorage.clear();
+      navigate("/login");
+    }
   }
+
+
+
+
   function switchRole(newRole) {
     if (newRole === role) {
       setOpen(false);

@@ -29,7 +29,7 @@ export default function Login() {
 
         // store JWT
         localStorage.setItem("access", res.data.access);
-        // localStorage.setItem("refresh", res.data.refresh);  
+        localStorage.setItem("refresh", res.data.refresh);  
         navigate("/author/dashboard");
 
       } catch (err) {
