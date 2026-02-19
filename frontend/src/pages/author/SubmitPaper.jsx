@@ -3,6 +3,7 @@ import api from "../api";
 import axios from "axios";
 
 export default function SubmitPaper() {
+
   const [title, setTitle] = useState("");
   const [abstract, setAbstract] = useState("");
   const [keywords, setKeywords] = useState("");
@@ -10,56 +11,71 @@ export default function SubmitPaper() {
   const [pdf, setPdf] = useState(null);
   const [msg, setMsg] = useState("");
 
-  // ✅ Authors State (name + institute only)
   const [authors, setAuthors] = useState([
     { name: "", institute: "" },
   ]);
 
-  // Update author field
+
+
   function handleAuthorChange(index, field, value) {
+
     const updated = [...authors];
     updated[index][field] = value;
     setAuthors(updated);
+
   }
 
-  // Add co-author
+
+
   function addAuthor() {
+
     setAuthors([...authors, { name: "", institute: "" }]);
+
   }
 
-  // Remove co-author
+
+
   function removeAuthor(index) {
+
     setAuthors(authors.filter((_, i) => i !== index));
+
   }
 
-  // Submit handler
+
+
   async function handleSubmit(e) {
+
     e.preventDefault();
 
     try {
+
       if (!pdf) {
         alert("Please select a PDF first.");
         return;
       }
 
-      // ✅ Validate authors
+
       for (const a of authors) {
+
         if (!a.name || !a.institute) {
-          alert("Please fill name and institute for all authors.");
+
+          alert("Please fill all authors.");
           return;
+
         }
+
       }
 
-      /* ============================
-         Step 1: Get ImageKit Upload Auth
-      ============================ */
+
+
       const authRes = await api.get("/api/files/upload_auth/");
+
       const { token, signature, expire, publicKey } = authRes.data;
 
-      /* ============================
-         Step 2: Upload PDF to ImageKit
-      ============================ */
+
+
       const formData = new FormData();
+
       formData.append("file", pdf);
       formData.append("fileName", pdf.name);
       formData.append("token", token);
@@ -68,36 +84,49 @@ export default function SubmitPaper() {
       formData.append("publicKey", publicKey);
       formData.append("folder", "/Research_Papers");
 
+
+
       const uploadRes = await axios.post(
+
         "https://upload.imagekit.io/api/v1/files/upload",
+
         formData
+
       );
+
+
 
       const pdf_url = uploadRes.data.url;
 
-      /* ============================
-         Step 3: Submit Paper Data
-      ============================ */
 
-      // ✅ Convert keywords string → array
+
       const keywordsArray = keywords
+
         .split(",")
+
         .map((k) => k.trim())
+
         .filter((k) => k.length > 0);
 
-      // ✅ Submit to Django (authors only name + institute)
+
+
       await api.post("/api/papers/create/", {
+
         title,
         abstract,
         keywords: keywordsArray,
         subject_area,
         pdf_url,
-        authors, // ✅ Perfect match with backend serializer
+        authors,
+
       });
 
-      setMsg("✅ Paper submitted successfully!");
 
-      // Reset form
+
+      setMsg("Paper submitted successfully!");
+
+
+
       setTitle("");
       setAbstract("");
       setKeywords("");
@@ -105,154 +134,383 @@ export default function SubmitPaper() {
       setPdf(null);
       setAuthors([{ name: "", institute: "" }]);
 
-    } catch (err) {
-      console.error("Submission error:", err.response?.data || err);
-      alert("Upload failed. Check console.");
     }
+
+    catch (err) {
+
+      console.error(err);
+      alert("Upload failed");
+
+    }
+
   }
 
+
+
   return (
-    <div className="rounded-3xl border bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-semibold">Submit Paper</h2>
 
-      {msg && (
-        <div className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-800">
-          {msg}
-        </div>
-      )}
+    <div className="max-w-4xl mx-auto">
 
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
 
-        {/* Title */}
-        <div>
-          <label className="text-sm font-medium text-gray-700">Title</label>
-          <input
-            className="mt-1 w-full rounded-xl border px-3 py-2"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </div>
+      {/* Card */}
 
-        {/* Abstract */}
-        <div>
-          <label className="text-sm font-medium text-gray-700">
-            Abstract
-          </label>
-          <textarea
-            className="mt-1 w-full rounded-xl border px-3 py-2"
-            rows={4}
-            value={abstract}
-            onChange={(e) => setAbstract(e.target.value)}
-            required
-          />
-        </div>
+      <div className="
+        bg-white
+        shadow-md
+        rounded-xl
+        border border-slate-200
+        p-8
+      ">
 
-        {/* Authors */}
-        <div>
-          <label className="text-sm font-medium text-gray-700">
-            Authors
-          </label>
 
-          <div className="mt-2 space-y-3">
-            {authors.map((author, index) => (
-              <div
-                key={index}
-                className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center"
-              >
-                {/* Author Name */}
-                <input
-                  className="md:col-span-2 rounded-xl border px-3 py-2"
-                  placeholder="Author Name"
-                  value={author.name}
-                  onChange={(e) =>
-                    handleAuthorChange(index, "name", e.target.value)
-                  }
-                  required
-                />
+        {/* Header */}
 
-                {/* Author Institute */}
-                <input
-                  className="md:col-span-2 rounded-xl border px-3 py-2"
-                  placeholder="Author Institute"
-                  value={author.institute}
-                  onChange={(e) =>
-                    handleAuthorChange(index, "institute", e.target.value)
-                  }
-                  required
-                />
+        <h1 className="
+          text-2xl
+          font-bold
+          text-slate-900
+          mb-2
+        ">
+          Submit Paper
+        </h1>
 
-                {/* Remove Button */}
-                {index > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => removeAuthor(index)}
-                    className="rounded-xl border px-3 py-2 text-sm text-red-600"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            ))}
+
+        <p className="
+          text-slate-500
+          text-sm
+          mb-6
+        ">
+          Fill the details and upload your research paper
+        </p>
+
+
+
+        {msg && (
+
+          <div className="
+            mb-6
+            bg-green-50
+            text-green-700
+            p-4
+            rounded-lg
+          ">
+
+            {msg}
+
           </div>
 
-          <button
-            type="button"
-            onClick={addAuthor}
-            className="mt-3 rounded-xl border px-4 py-2 text-sm"
-          >
-            + Add Co-Author
-          </button>
-        </div>
+        )}
 
-        {/* Keywords */}
-        <div>
-          <label className="text-sm font-medium text-gray-700">
-            Keywords
-          </label>
-          <input
-            className="mt-1 w-full rounded-xl border px-3 py-2"
-            value={keywords}
-            onChange={(e) => setKeywords(e.target.value)}
-            placeholder="AI, Databases, AR"
-            required
-          />
-        </div>
 
-        {/* Subject Area */}
-        <div>
-          <label className="text-sm font-medium text-gray-700">
-            Subject Area
-          </label>
-          <input
-            className="mt-1 w-full rounded-xl border px-3 py-2"
-            value={subject_area}
-            onChange={(e) => setSubjectArea(e.target.value)}
-            required
-          />
-        </div>
 
-        {/* PDF Upload */}
-        <div>
-          <label className="text-sm font-medium text-gray-700">
-            PDF Upload
-          </label>
-          <input
-            className="mt-1 w-full rounded-xl border px-3 py-2"
-            type="file"
-            accept="application/pdf"
-            onChange={(e) => setPdf(e.target.files?.[0] || null)}
-          />
-        </div>
+        <form
 
-        {/* Submit */}
-        <button
-          disabled={!pdf}
-          className="rounded-xl bg-gray-900 px-5 py-2 text-white text-sm font-medium disabled:opacity-50"
+          onSubmit={handleSubmit}
+
+          className="space-y-6"
+
         >
-          Submit Paper
-        </button>
-      </form>
+
+
+          {/* Title */}
+
+          <Input
+
+            label="Title"
+
+            value={title}
+
+            setValue={setTitle}
+
+          />
+
+
+
+          {/* Abstract */}
+
+          <TextArea
+
+            label="Abstract"
+
+            value={abstract}
+
+            setValue={setAbstract}
+
+          />
+
+
+
+          {/* Authors */}
+
+          <div>
+
+            <label className="label">
+
+              Authors
+
+            </label>
+
+
+
+            <div className="space-y-3">
+
+              {authors.map((author, index) => (
+
+                <div
+
+                  key={index}
+
+                  className="grid md:grid-cols-5 gap-3"
+
+                >
+
+
+                  <input
+
+                    className="input md:col-span-2"
+
+                    placeholder="Author Name"
+
+                    value={author.name}
+
+                    onChange={(e) =>
+                      handleAuthorChange(index, "name", e.target.value)
+                    }
+
+                    required
+                  />
+
+
+
+                  <input
+
+                    className="input md:col-span-2"
+
+                    placeholder="Institute"
+
+                    value={author.institute}
+
+                    onChange={(e) =>
+                      handleAuthorChange(index, "institute", e.target.value)
+                    }
+
+                    required
+                  />
+
+
+
+                  {index > 0 && (
+
+                    <button
+
+                      type="button"
+
+                      onClick={() => removeAuthor(index)}
+
+                      className="
+                        text-red-600
+                        border
+                        rounded-lg
+                        px-3
+                      "
+
+                    >
+
+                      Remove
+
+                    </button>
+
+                  )}
+
+
+
+                </div>
+
+              ))}
+
+            </div>
+
+
+
+            <button
+
+              type="button"
+
+              onClick={addAuthor}
+
+              className="
+                mt-3
+                text-blue-600
+                font-medium
+              "
+
+            >
+
+              + Add Co-Author
+
+            </button>
+
+
+
+          </div>
+
+
+
+          <Input
+
+            label="Keywords"
+
+            value={keywords}
+
+            setValue={setKeywords}
+
+          />
+
+
+
+          <Input
+
+            label="Subject Area"
+
+            value={subject_area}
+
+            setValue={setSubjectArea}
+
+          />
+
+
+
+          {/* File */}
+
+          <div>
+
+            <label className="label">
+
+              PDF Upload
+
+            </label>
+
+
+
+            <input
+
+              type="file"
+
+              accept="application/pdf"
+
+              className="input"
+
+              onChange={(e) =>
+                setPdf(e.target.files?.[0] || null)
+              }
+
+            />
+
+          </div>
+
+
+
+          {/* Submit */}
+
+          <button
+
+            disabled={!pdf}
+
+            className="
+              bg-blue-600
+              hover:bg-blue-700
+              text-white
+              px-6
+              py-3
+              rounded-lg
+              font-medium
+              transition
+              disabled:opacity-50
+            "
+
+          >
+
+            Submit Paper
+
+          </button>
+
+
+
+        </form>
+
+      </div>
+
     </div>
+
   );
+
+}
+
+
+
+/* Reusable components */
+
+
+function Input({ label, value, setValue }) {
+
+  return (
+
+    <div>
+
+      <label className="label">
+
+        {label}
+
+      </label>
+
+      <input
+
+        className="input"
+
+        value={value}
+
+        onChange={(e) => setValue(e.target.value)}
+
+        required
+
+      />
+
+    </div>
+
+  );
+
+}
+
+
+
+function TextArea({ label, value, setValue }) {
+
+  return (
+
+    <div>
+
+      <label className="label">
+
+        {label}
+
+      </label>
+
+      <textarea
+
+        rows="4"
+
+        className="input"
+
+        value={value}
+
+        onChange={(e) => setValue(e.target.value)}
+
+        required
+
+      />
+
+    </div>
+
+  );
+
 }
