@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { setRole } from "../data/mockDb";
 import api from "./api";
 
@@ -7,34 +8,29 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleLogin(e) {
     e.preventDefault();
     const role = "author";
     setRole(role);
-    const map = {
-      author: "/author/dashboard",
-      reviewer: "/reviewer/dashboard",
-      admin: "/admin/dashboard",
-    };
-      try {
-        const payload = {
-          email,
-          password
-        };
 
-        const res = await api.post("/api/auth/login/", payload);
+    try {
+      const payload = {
+        email,
+        password,
+      };
 
-        console.log("Login successful:", res.data);
+      const res = await api.post("/api/auth/login/", payload);
 
-        // store JWT
-        localStorage.setItem("access", res.data.access);
-        localStorage.setItem("refresh", res.data.refresh);  
-        navigate("/author/dashboard");
+      console.log("Login successful:", res.data);
 
-      } catch (err) {
-        console.error("Login error:", err.response?.data || err);
-      }
+      localStorage.setItem("access", res.data.access);
+      localStorage.setItem("refresh", res.data.refresh);
+      navigate("/author/dashboard");
+    } catch (err) {
+      console.error("Login error:", err.response?.data || err);
+    }
   }
 
   return (
@@ -60,17 +56,26 @@ export default function Login() {
 
           <div>
             <label className="text-sm font-medium text-gray-700">Password</label>
-            <input
-              className="mt-1 w-full rounded-xl border px-3 py-2"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              type="password"
-              required
-            />
+            <div className="relative mt-1">
+              <input
+                className="w-full rounded-xl border px-3 py-2 pr-12"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                type={showPassword ? "text" : "password"}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 hover:cursor-pointer"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
-          <button className="w-full rounded-xl bg-gray-900 px-4 py-2 text-white font-medium">
+          <button className="w-full rounded-xl bg-gray-900 px-4 py-2 text-white font-medium cursor-pointer">
             Login
           </button>
         </form>

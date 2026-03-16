@@ -1,38 +1,123 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import api from "../api";
 import axios from "axios";
+import { ChevronDown, Plus } from "lucide-react";
+import collegesData from "../../data/colleges.json";
+import researchDomainsData from "../../data/researchDomains.json";
+
+function formatDomainLabel(domain) {
+  return domain.replaceAll("_", " ");
+}
 
 export default function SubmitPaper() {
   const [title, setTitle] = useState("");
   const [abstract, setAbstract] = useState("");
-  const [keywords, setKeywords] = useState("");
+  const [keywords, setKeywords] = useState([]);
   const [subject_area, setSubjectArea] = useState("");
   const [pdf, setPdf] = useState(null);
   const [msg, setMsg] = useState("");
 
-  // ✅ Authors State (name + institute only)
-  const [authors, setAuthors] = useState([
-    { name: "", institute: "" },
-  ]);
+  const [authors, setAuthors] = useState([{ name: "", institute: "" }]);
 
-  // Update author field
+  const [instituteSearches, setInstituteSearches] = useState([""]);
+  const [openInstituteIndex, setOpenInstituteIndex] = useState(null);
+
+  const [topicSearch, setTopicSearch] = useState("");
+  const [showTopicDropdown, setShowTopicDropdown] = useState(false);
+
+  const instituteRefs = useRef([]);
+  const topicRef = useRef(null);
+
+  const collegeOptions = useMemo(() => {
+    const institutes = collegesData?.institutes || [];
+    return [...institutes].sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  const researchDomainMap = researchDomainsData?.cs_domains || {};
+
+  const subjectAreaOptions = useMemo(() => {
+    return Object.keys(researchDomainMap);
+  }, [researchDomainMap]);
+
+  const allTopics = useMemo(() => {
+    return [...new Set(Object.values(researchDomainMap).flat())].sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [researchDomainMap]);
+
+  const filteredTopics = useMemo(() => {
+    const query = topicSearch.trim().toLowerCase();
+
+    return allTopics.filter(
+      (topic) =>
+        topic.toLowerCase().includes(query) && !keywords.includes(topic)
+    );
+  }, [topicSearch, allTopics, keywords]);
+
+  function getFilteredColleges(searchValue) {
+    const query = searchValue.trim().toLowerCase();
+    if (!query) return collegeOptions;
+
+    return collegeOptions.filter(
+      (college) =>
+        college.name.toLowerCase().includes(query) ||
+        college.country.toLowerCase().includes(query)
+    );
+  }
+
   function handleAuthorChange(index, field, value) {
     const updated = [...authors];
     updated[index][field] = value;
     setAuthors(updated);
   }
 
-  // Add co-author
+  function handleInstituteSearchChange(index, value) {
+    const updatedSearches = [...instituteSearches];
+    updatedSearches[index] = value;
+    setInstituteSearches(updatedSearches);
+
+    const updatedAuthors = [...authors];
+    updatedAuthors[index].institute = "";
+    setAuthors(updatedAuthors);
+
+    setOpenInstituteIndex(index);
+  }
+
+  function handleInstituteSelect(index, college) {
+    const updatedAuthors = [...authors];
+    updatedAuthors[index].institute = college.name;
+    setAuthors(updatedAuthors);
+
+    const updatedSearches = [...instituteSearches];
+    updatedSearches[index] = `${college.name} (${college.country})`;
+    setInstituteSearches(updatedSearches);
+
+    setOpenInstituteIndex(null);
+  }
+
   function addAuthor() {
     setAuthors([...authors, { name: "", institute: "" }]);
+    setInstituteSearches([...instituteSearches, ""]);
   }
 
-  // Remove co-author
   function removeAuthor(index) {
     setAuthors(authors.filter((_, i) => i !== index));
+    setInstituteSearches(instituteSearches.filter((_, i) => i !== index));
+    if (openInstituteIndex === index) {
+      setOpenInstituteIndex(null);
+    }
   }
 
-  // Submit handler
+  function addKeyword(value) {
+    const cleaned = value.trim();
+    if (!cleaned || keywords.includes(cleaned)) return;
+    setKeywords((prev) => [...prev, cleaned]);
+  }
+
+  function removeKeyword(value) {
+    setKeywords((prev) => prev.filter((item) => item !== value));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -42,7 +127,6 @@ export default function SubmitPaper() {
         return;
       }
 
-      // ✅ Validate authors
       for (const a of authors) {
         if (!a.name || !a.institute) {
           alert("Please fill name and institute for all authors.");
@@ -50,15 +134,9 @@ export default function SubmitPaper() {
         }
       }
 
-      /* ============================
-         Step 1: Get ImageKit Upload Auth
-      ============================ */
       const authRes = await api.get("/api/files/upload_auth/");
       const { token, signature, expire, publicKey } = authRes.data;
 
-      /* ============================
-         Step 2: Upload PDF to ImageKit
-      ============================ */
       const formData = new FormData();
       formData.append("file", pdf);
       formData.append("fileName", pdf.name);
@@ -75,41 +153,47 @@ export default function SubmitPaper() {
 
       const pdf_url = uploadRes.data.url;
 
-      /* ============================
-         Step 3: Submit Paper Data
-      ============================ */
-
-      // ✅ Convert keywords string → array
-      const keywordsArray = keywords
-        .split(",")
-        .map((k) => k.trim())
-        .filter((k) => k.length > 0);
-
-      // ✅ Submit to Django (authors only name + institute)
       await api.post("/api/papers/create/", {
         title,
         abstract,
-        keywords: keywordsArray,
+        keywords,
         subject_area,
         pdf_url,
-        authors, // ✅ Perfect match with backend serializer
+        authors,
       });
 
       setMsg("✅ Paper submitted successfully!");
-
-      // Reset form
       setTitle("");
       setAbstract("");
-      setKeywords("");
+      setKeywords([]);
       setSubjectArea("");
       setPdf(null);
       setAuthors([{ name: "", institute: "" }]);
-
+      setInstituteSearches([""]);
     } catch (err) {
       console.error("Submission error:", err.response?.data || err);
       alert("Upload failed. Check console.");
     }
   }
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (
+        openInstituteIndex !== null &&
+        instituteRefs.current[openInstituteIndex] &&
+        !instituteRefs.current[openInstituteIndex].contains(e.target)
+      ) {
+        setOpenInstituteIndex(null);
+      }
+
+      if (topicRef.current && !topicRef.current.contains(e.target)) {
+        setShowTopicDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openInstituteIndex]);
 
   return (
     <div className="rounded-3xl border bg-white p-6 shadow-sm">
@@ -122,8 +206,6 @@ export default function SubmitPaper() {
       )}
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-
-        {/* Title */}
         <div>
           <label className="text-sm font-medium text-gray-700">Title</label>
           <input
@@ -134,11 +216,8 @@ export default function SubmitPaper() {
           />
         </div>
 
-        {/* Abstract */}
         <div>
-          <label className="text-sm font-medium text-gray-700">
-            Abstract
-          </label>
+          <label className="text-sm font-medium text-gray-700">Abstract</label>
           <textarea
             className="mt-1 w-full rounded-xl border px-3 py-2"
             rows={4}
@@ -148,52 +227,99 @@ export default function SubmitPaper() {
           />
         </div>
 
-        {/* Authors */}
         <div>
-          <label className="text-sm font-medium text-gray-700">
-            Authors
-          </label>
+          <label className="text-sm font-medium text-gray-700">Authors</label>
 
           <div className="mt-2 space-y-3">
-            {authors.map((author, index) => (
-              <div
-                key={index}
-                className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center"
-              >
-                {/* Author Name */}
-                <input
-                  className="md:col-span-2 rounded-xl border px-3 py-2"
-                  placeholder="Author Name"
-                  value={author.name}
-                  onChange={(e) =>
-                    handleAuthorChange(index, "name", e.target.value)
-                  }
-                  required
-                />
+            {authors.map((author, index) => {
+              const filteredColleges = getFilteredColleges(
+                instituteSearches[index] || ""
+              );
 
-                {/* Author Institute */}
-                <input
-                  className="md:col-span-2 rounded-xl border px-3 py-2"
-                  placeholder="Author Institute"
-                  value={author.institute}
-                  onChange={(e) =>
-                    handleAuthorChange(index, "institute", e.target.value)
-                  }
-                  required
-                />
+              return (
+                <div
+                  key={index}
+                  className="grid grid-cols-1 gap-2 md:grid-cols-5 md:items-start"
+                >
+                  <input
+                    className="rounded-xl border px-3 py-2 md:col-span-2"
+                    placeholder="Author Name"
+                    value={author.name}
+                    onChange={(e) =>
+                      handleAuthorChange(index, "name", e.target.value)
+                    }
+                    required
+                  />
 
-                {/* Remove Button */}
-                {index > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => removeAuthor(index)}
-                    className="rounded-xl border px-3 py-2 text-sm text-red-600"
+                  <div
+                    className="relative md:col-span-2"
+                    ref={(el) => (instituteRefs.current[index] = el)}
                   >
-                    Remove
-                  </button>
-                )}
-              </div>
-            ))}
+                    <input
+                      type="text"
+                      className="w-full rounded-xl border px-3 py-2 pr-10"
+                      placeholder="Search and select institute"
+                      value={instituteSearches[index] || ""}
+                      onChange={(e) =>
+                        handleInstituteSearchChange(index, e.target.value)
+                      }
+                      onFocus={() => setOpenInstituteIndex(index)}
+                      required
+                    />
+
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                      onClick={() =>
+                        setOpenInstituteIndex((prev) =>
+                          prev === index ? null : index
+                        )
+                      }
+                    >
+                      <ChevronDown size={18} />
+                    </button>
+
+                    {openInstituteIndex === index && (
+                      <div className="absolute z-20 mt-2 max-h-60 w-full overflow-y-auto rounded-xl border bg-white shadow-lg">
+                        {filteredColleges.length > 0 ? (
+                          filteredColleges.map((college) => (
+                            <button
+                              key={`${college.id}-${index}`}
+                              type="button"
+                              className="block w-full border-b px-4 py-2 text-left hover:bg-gray-100"
+                              onClick={() =>
+                                handleInstituteSelect(index, college)
+                              }
+                            >
+                              <div className="text-sm font-medium text-gray-900">
+                                {college.name}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {college.country}
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-sm text-gray-500">
+                            No matching college found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => removeAuthor(index)}
+                      className="rounded-xl border px-3 py-2 text-sm text-red-600"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <button
@@ -205,34 +331,93 @@ export default function SubmitPaper() {
           </button>
         </div>
 
-        {/* Keywords */}
-        <div>
-          <label className="text-sm font-medium text-gray-700">
-            Keywords
-          </label>
-          <input
-            className="mt-1 w-full rounded-xl border px-3 py-2"
-            value={keywords}
-            onChange={(e) => setKeywords(e.target.value)}
-            placeholder="AI, Databases, AR"
-            required
-          />
+        <div ref={topicRef}>
+          <label className="text-sm font-medium text-gray-700">Keywords</label>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            {keywords.map((keyword) => (
+              <span
+                key={keyword}
+                className="flex items-center gap-2 rounded-full bg-gray-200 px-3 py-1 text-sm"
+              >
+                {keyword}
+                <button
+                  type="button"
+                  className="text-gray-700 hover:text-black"
+                  onClick={() => removeKeyword(keyword)}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+
+          <div className="relative mt-3">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-gray-50"
+              onClick={() => setShowTopicDropdown((prev) => !prev)}
+            >
+              <Plus size={16} />
+              Add Keyword
+            </button>
+
+            {showTopicDropdown && (
+              <div className="absolute z-20 mt-2 w-full rounded-xl border bg-white shadow-lg">
+                <input
+                  className="w-full border-b px-3 py-2 outline-none"
+                  placeholder="Search and select a keyword"
+                  value={topicSearch}
+                  onChange={(e) => setTopicSearch(e.target.value)}
+                  autoFocus
+                />
+
+                <div className="max-h-60 overflow-y-auto">
+                  {filteredTopics.length > 0 ? (
+                    filteredTopics.map((topic) => (
+                      <button
+                        key={topic}
+                        type="button"
+                        className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                        onClick={() => {
+                          addKeyword(topic);
+                          setTopicSearch("");
+                          setShowTopicDropdown(false);
+                        }}
+                      >
+                        {topic}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-gray-500">
+                      No matching keyword found
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Subject Area */}
         <div>
           <label className="text-sm font-medium text-gray-700">
             Subject Area
           </label>
-          <input
-            className="mt-1 w-full rounded-xl border px-3 py-2"
+          <select
+            className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-gray-400 focus:outline-none focus:ring-0"
             value={subject_area}
             onChange={(e) => setSubjectArea(e.target.value)}
             required
-          />
+          >
+            <option value="">Select subject area</option>
+            {subjectAreaOptions.map((domain) => (
+              <option key={domain} value={domain}>
+                {formatDomainLabel(domain)}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* PDF Upload */}
         <div>
           <label className="text-sm font-medium text-gray-700">
             PDF Upload
@@ -245,10 +430,8 @@ export default function SubmitPaper() {
           />
         </div>
 
-        {/* Submit */}
         <button
-          disabled={!pdf}
-          className="rounded-xl bg-gray-900 px-5 py-2 text-white text-sm font-medium disabled:opacity-50"
+          className="rounded-xl bg-gray-900 px-5 py-2 text-sm font-medium text-white disabled:opacity-50 cursor-pointer"
         >
           Submit Paper
         </button>
